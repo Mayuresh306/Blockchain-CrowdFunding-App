@@ -4,26 +4,43 @@ pragma solidity ^0.8.3;
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // creating a crowd funding app as a project (2/6/2025)
-// nullclass internship --- task1 (line 3 to 9 , 25 )
+// nullclass internship --- task1 (line 257 to 265 )
+// nullclass internship --- task2 (line 26 , 150 , 194 to 196 )
+// nullclass internship --- task3 (line 99 , 100 , 240 , 254 )
+// nullclass internship --- task4 (line 269 to 278 )
+// nullclass internship --- task5 (file path: CROWD_TANK/scripts/creatorWithdrawFunds.js , CROWD_TANK/scripts/userWithdrawFunds.js )
+// nullclass internship --- task6 (line 280 to 284 )
+// nullclass internship --- task7 (line 287 to 293 )
+// nullclass internship --- task8 (line 134 to 143 , 151 to 154 )
+// nullclass internship --- task9 (line 296 to 300 )
+// nullclass internship --- task10 (line 28 , 122)
+// nullclass internship --- task11 (line 303 to 330 )
+// nullclass internship --- task12 (line 52 to 64 )
+// nullclass internship --- task13 (line 75 , 76 , 156 to 169 )
+// nullclass internship --- task14 (line 37 , 38 , 171 to 192 )
+// nullclass internship --- task15 (line 35 , 144 to 148 , 333 to 341 )
 
 contract CrowdTank is ReentrancyGuard {
 
-    // nullclass internship --- task2 
+    // nullclass internship --- task2 (line 25)
     uint TotalRaisedFunding;
 
-   //nullclass internship --- task 10
+   //nullclass internship --- task 10 (line 28)
    uint public TotalProjects;
 
-    // nullclass internship --- task 12
+    // nullclass internship --- task 12 (line 31)
    address public admin;
 
-    uint Successful_Funded_Projects;
+   // nullclass internship --- task 15 (line 35)
+   uint public systemCommission;
+
+    uint Successful_Funded_Projects;          // task 14 -- line 37 to 38
     uint Failed_Funded_Projects;
 
    event addedCreator(address indexed creator);
    event removedCreator(address indexed creator);
 
-   constructor() {
+   constructor() {           // task 12 --- line 43 to 45
         admin = msg.sender;
    }
 
@@ -31,7 +48,7 @@ contract CrowdTank is ReentrancyGuard {
     require(admin == msg.sender , "Only Admin can access");_;
    }
 
-    // to store authorized creators 
+    // to store authorized creators  task 12 --- line 52 to 64
    mapping (address => bool) public AuthorizedCreators;
 
     function Add_Creators( address _creator ) external OnlyAdmin {
@@ -55,7 +72,7 @@ contract CrowdTank is ReentrancyGuard {
         uint deadline;
         uint amountRaised;
         bool funded;
-        address highest_Funder;
+        address highest_Funder;         // task 13 --- line 75 , 76
         uint highest_contribution;
         bool failed_projects;
         bool status_processed;
@@ -78,9 +95,10 @@ contract CrowdTank is ReentrancyGuard {
     event ProjectCreated(uint indexed projectID , address indexed creator , string name , string description , uint fundingGoal , uint deadline);
     event funded(uint indexed projectID , address contributor , uint amount , uint refund);
 
-    // nullclass internship --- task 3 (35 , 36 , 84 , 98)
+    // nullclass internship --- task 3 (99 , 100 , 240 , 254)
     event userWithdrawn(uint indexed projectID , address withdrawer , uint amount);
     event creatorWithdrawn(uint indexed projectID , address withdrawer , uint amount );
+
     event UserEarlyWithdraw( address indexed user , uint indexed _projectID , uint amount );
 
     // creating the 'project create' function
@@ -101,7 +119,7 @@ contract CrowdTank is ReentrancyGuard {
             failed_projects: false,
             status_processed: false
         });
-        TotalProjects++;
+        TotalProjects++;       // task 10 --- (line 122)
         projectIDs.push(_id);
         emit ProjectCreated(_id , msg.sender , _name , _description , _fundingGoal , block.timestamp+_durationSeconds);
     }
@@ -113,7 +131,7 @@ contract CrowdTank is ReentrancyGuard {
             require(!Project.funded , "Project Reached its Funding requirement");
             require(msg.value>0 , "send some ether to contribute in the project");
             require(msg.value <= Project.fundingGoal, "Amount Contributed is more than Goal");
-            uint remaining = Project.fundingGoal - Project.amountRaised;
+            uint remaining = Project.fundingGoal - Project.amountRaised;           // task 8 -- line 134 to 143 
             uint amountToAccept;
             uint refund;
             if(msg.value > remaining) {
@@ -123,15 +141,18 @@ contract CrowdTank is ReentrancyGuard {
                 amountToAccept = msg.value;
                 refund = 0;
             }
-            Project.amountRaised += amountToAccept;
-            Contributions[_projectID][msg.sender] = amountToAccept;
-            // task 2 (line 61)
-            TotalRaisedFunding+=amountToAccept;
-            if (refund > 0) {
+            uint commission = (amountToAccept * 5) / 100;      // task 15 --- (line 144 to 148)
+            uint netAmount = amountToAccept - commission;
+            systemCommission += commission;
+            Project.amountRaised += netAmount;
+            Contributions[_projectID][msg.sender] = netAmount;
+            // task 2 (line 150)
+            TotalRaisedFunding+=netAmount;
+            if (refund > 0) {                                    // task 8 --- line 151 to 154
                 (bool sent, ) = payable(msg.sender).call{value: refund}("");
                 require(sent , "Refund Failed");
             }
-            // nullclass internship --- task 13
+            // nullclass internship --- task 13 (line 156 to 169)
             uint userTotal = Contributions[_projectID][msg.sender];
             if (userTotal > Project.highest_contribution) {
                 Project.highest_contribution = userTotal;
@@ -146,7 +167,7 @@ contract CrowdTank is ReentrancyGuard {
                 Successful_Funded_Projects++;
             }
         }
-
+        // nullclass internship --- task 14 (line 171 to 192)
         function UpdateProjectStatus() public {
             for (uint i = 0; i < projectIDs.length; i++) {
                 uint projectID = projectIDs[i];
@@ -170,7 +191,7 @@ contract CrowdTank is ReentrancyGuard {
             return (Successful_Funded_Projects, Failed_Funded_Projects);
         }
             
-        // task 2 ( line 71 to 73 )
+        // task 2 ( line 194 to 196 )
         function Get_Total_Raised_Funding() view public returns(uint) {
             return TotalRaisedFunding;
         }
@@ -216,7 +237,7 @@ contract CrowdTank is ReentrancyGuard {
         (bool sent, ) = payable(msg.sender).call{value: fundsContributed}("");
         require(sent , "Withdrawal Failed");
 
-        // task3
+        // task3 (line 240)
         emit userWithdrawn(_projectID, msg.sender, fundsContributed);
         
     }
@@ -230,11 +251,11 @@ contract CrowdTank is ReentrancyGuard {
         require(Project.deadline<=block.timestamp , "deadline has not reached , admin can't withdraw");
         payable(msg.sender).transfer(totalfunding);
 
-        // task3 --- (line 98)
+        // task3 --- (line 254)
         emit creatorWithdrawn(_projectID, msg.sender, msg.value);
     }
 
-      //nullclass internship --- task 1  ( line 83 to 91 )
+      //nullclass internship --- task 1  ( line 257 to 265 )
       function Time_Left(uint projectID) view public returns(uint) {
         project storage Project = Projects[projectID];
         if (block.timestamp >= Project.deadline) {
@@ -242,10 +263,9 @@ contract CrowdTank is ReentrancyGuard {
         } else {
             return(Project.deadline - block.timestamp);
         }
-
       }
 
-      // nullclass internship --- task 4 (line 114 to 121)
+      // nullclass internship --- task 4 (line 269 to 278 )
     function Remaining_Fund(uint projectID) public view returns(uint fundingGoal , uint remainingFund) {
          project storage Project = Projects[projectID];
         fundingGoal = Project.fundingGoal;
@@ -256,14 +276,14 @@ contract CrowdTank is ReentrancyGuard {
             remainingFund = Project.fundingGoal - Project.amountRaised;
         }
     }
-    // nullclass internship--- task 6 
+    // nullclass internship--- task 6 (line 280 to 284)
     function Extend_Deadline(uint _projectID , uint _deadline) external {
         project storage Project = Projects[_projectID];
         require(Project.creator == msg.sender , "Only Project creator can extend the deadline!!");
         Project.deadline += _deadline;
     }
 
-    // nullclass intership --- task 7
+    // nullclass intership --- task 7 (line 287 to 293)
     function Change_FundingGoal( uint _projectID , uint Change_Goal) external {
          project storage Project = Projects[_projectID];
         require(Project.deadline > 0 , "Deadline is over , you Can't change the funding goal !!");
@@ -272,14 +292,14 @@ contract CrowdTank is ReentrancyGuard {
         Project.fundingGoal = Change_Goal;
     }
 
-    // nullclass internship --- task 9
+    // nullclass internship --- task 9 (line 296 to 300)
     function Funding_Raised_Percentage( uint _projectID ) public view  returns(uint) {
         project storage Project = Projects[_projectID];
         uint Raised_Percentage = ( Project.amountRaised*100 ) / Project.fundingGoal;
         return Raised_Percentage;
     }
 
-    // nullclass internship --- task 11
+    // nullclass internship --- task 11 (line 303 to 330)
     function userEarlyWithdraw( uint _projectID , uint withdrawn_amount) external payable {
         project storage Project = Projects[_projectID];
         require(block.timestamp < Project.deadline, "Cannot withdraw after deadline");
@@ -307,5 +327,15 @@ contract CrowdTank is ReentrancyGuard {
         require(sent , "withdraw failed!!!!");
 
         emit UserEarlyWithdraw(msg.sender, _projectID, withdrawn_amount);
+    }
+
+    // nullclass internship --- task 15 (line 333 to 341)
+    function AdminWithdrawCommission() external OnlyAdmin {
+        require(systemCommission > 0 , "No commission to withdraw");
+        uint amount = systemCommission;
+        systemCommission = 0;
+
+        (bool sent, ) = payable(msg.sender).call{value: amount}("");
+        require(sent , "Withdrawal Failed!");
     }
 }
