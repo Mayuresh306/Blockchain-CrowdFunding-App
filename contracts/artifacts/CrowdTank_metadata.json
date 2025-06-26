@@ -677,11 +677,11 @@
 			]
 		},
 		"contracts/CrowdTank.sol": {
-			"keccak256": "0x500829528eafee1406b45503fe5fa9fb0d96fc05837e47915631d40d1d095e4f",
+			"keccak256": "0xcc6d88a7ea9a51c7af4c0831e357b7a5f51569e443a1bd1ac14f868b30cdabdb",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://dc4fd57661b9ebcfb086dcdb4969c73e46ba6ce97a466ff809c6a4c27bd72413",
-				"dweb:/ipfs/QmUsVBJCqYowWzB5JbVHdtPTtHVysut388cw8eobkFKbvG"
+				"bzz-raw://cbe88f998147da9b98fec4a91d5bd99b1a62271c7dc3d286f133657baed30333",
+				"dweb:/ipfs/QmSs98GHLYZABHjY5qWSgqooXQv8FxNMxpFCjVq1MonNiJ"
 			]
 		}
 	},
