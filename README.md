@@ -1,10 +1,10 @@
-🧱 Blockchain Crowdfunding Smart Contract – Nullclass Internship
+🧱 Blockchain Crowdfunding Smart Contract DAPP
 
  📌 Project Overview
 
-This project is a decentralized crowdfunding smart contract developed as part of the **Nullclass Blockchain Internship** by **Mayureshwar Reddy**. The contract allows verified project creators to raise funds from contributors on the Ethereum blockchain, with support for early withdrawals, project status tracking, and platform commission.
+This project is a decentralized crowdfunding smart contract developed by **Mayureshwar Reddy**. The contract allows verified project creators to raise funds from contributors on the Ethereum blockchain, with support for early withdrawals, project status tracking, and platform commission.
 
-✅ All 15 internship tasks have been implemented and tested.
+✅ 15 Features have been implemented and tested.
 
 ---
 
@@ -31,7 +31,7 @@ Contains all logic for:
 
 ---
 
-✅ Tasks Implemented (1–15)
+✅ Features Implemented (1–15)
 
 | Task No. | Description |
 |----------|-------------|
@@ -64,8 +64,8 @@ Contains all logic for:
 ### Steps:
 
 1. Clone the repo:
-- git clone https://github.com/Mayuresh306/Blockchain-CrowdFunding-Nullclass-Internship.git
-- cd Blockchain-CrowdFunding-Nullclass-Internship
+- git clone https://github.com/Mayuresh306/Blockchain-CrowdFunding-App.git
+- cd CROWD_TANK
 
 2. Install dependencies:
 - npm install
@@ -133,11 +133,6 @@ module.exports = {
 🔐 Roles & Access
 - Admin: Contract deployer with exclusive rights to add/remove creators & withdraw commission
 - Authorized Creators: Only these addresses can create new projects
-
-📈 Reports
-- Final internship report is included in this repository:
-- 📄 [c2fe20b3-8937-4671-9071-1f7722b63305.pdf](https://github.com/user-attachments/files/20867976/c2fe20b3-8937-4671-9071-1f7722b63305.pdf)
-
 
 🙋‍♂️ Developer
 - Mayureshwar Reddy
