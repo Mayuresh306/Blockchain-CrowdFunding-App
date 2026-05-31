@@ -2,7 +2,7 @@ const { ethers } = require("hardhat");
 
 async function main() {
     const [user] = await ethers.getSigners();
-    const ContractAddress = "0xd3F92405B5effa79C00e89f235E7679b2D98e598";
+    const ContractAddress = "0xe391a83C22c5C042fCF57a2C9Add1360Cc6ee47C";
     
     const Contract = await ethers.getContractAt("CrowdTank" , ContractAddress , user);
 
