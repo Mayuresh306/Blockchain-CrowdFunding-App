@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CrowdTank — Decentralized Crowdfunding</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0d0e14;
+    --surface: #13151f;
+    --card: #1a1d2a;
+    --border: #2a2f44;
+    --accent: #6cf0b0;
+    --accent2: #5b7fff;
+    --accent3: #f0a76c;
+    --text: #e8eaf2;
+    --muted: #7b80a0;
+    --danger: #f05b7a;
+    --radius: 12px;
+    --font: 'Sora', sans-serif;
+    --mono: 'Space Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* LAYOUT */
+  .app { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+
+  /* TOPBAR */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2rem; height: 64px;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-weight: 700; font-size: 18px; color: var(--accent); letter-spacing: -0.5px; }
+  .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .network-badge { font-family: var(--mono); font-size: 11px; background: rgba(91,127,255,.15); color: var(--accent2); border: 1px solid rgba(91,127,255,.3); border-radius: 20px; padding: 4px 12px; }
+  #connectBtn {
+    background: var(--accent); color: #0a1a12; font-family: var(--mono); font-size: 13px; font-weight: 700;
+    border: none; border-radius: 8px; padding: 8px 18px; cursor: pointer; transition: opacity .15s;
+  }
+  #connectBtn:hover { opacity: .85; }
+  #connectBtn.connected { background: var(--card); color: var(--accent); border: 1px solid var(--border); font-size: 11px; }
+
+  /* MAIN GRID */
+  main { display: grid; grid-template-columns: 220px 1fr; gap: 0; }
+
+  /* SIDEBAR */
+  nav {
+    background: var(--surface); border-right: 1px solid var(--border);
+    padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 4px;
+    position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto;
+  }
+  .nav-section { font-size: 10px; font-family: var(--mono); color: var(--muted); letter-spacing: 1px; text-transform: uppercase; padding: 12px 8px 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px; font-size: 14px; cursor: pointer;
+    color: var(--muted); transition: all .15s; border: none; background: none; text-align: left; width: 100%;
+  }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .nav-item:hover { background: var(--card); color: var(--text); }
+  .nav-item.active { background: rgba(108,240,176,.1); color: var(--accent); }
+
+  /* CONTENT */
+  .content { padding: 2rem; overflow-y: auto; }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeUp .25s ease; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+  /* PAGE HEADER */
+  .page-header { margin-bottom: 1.5rem; }
+  .page-header h1 { font-size: 22px; font-weight: 700; color: var(--text); }
+  .page-header p { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+  /* STAT CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+  .stat-card label { font-size: 11px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .stat-card .val { font-size: 26px; font-weight: 700; font-family: var(--mono); margin-top: 6px; }
+  .stat-card .val.green { color: var(--accent); }
+  .stat-card .val.blue { color: var(--accent2); }
+  .stat-card .val.amber { color: var(--accent3); }
+
+  /* FORM CARD */
+  .form-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; }
+  .form-card h2 { font-size: 15px; font-weight: 600; margin-bottom: 1rem; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-group label { font-size: 12px; font-family: var(--mono); color: var(--muted); }
+  .form-group input, .form-group textarea, .form-group select {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: var(--font); font-size: 14px; padding: 9px 12px;
+    outline: none; transition: border-color .15s;
+  }
+  .form-group input:focus, .form-group textarea:focus { border-color: var(--accent2); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .btn-row { margin-top: 1rem; display: flex; gap: 10px; align-items: center; }
+  .btn { padding: 10px 20px; border-radius: 8px; font-family: var(--mono); font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: #0a1a12; }
+  .btn-primary:hover { opacity: .85; }
+  .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+  .btn-danger { background: rgba(240,91,122,.15); color: var(--danger); border: 1px solid rgba(240,91,122,.3); }
+  .btn-danger:hover { background: rgba(240,91,122,.25); }
+
+  /* PROJECT CARDS */
+  .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+  .project-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem;
+    display: flex; flex-direction: column; gap: 12px; transition: border-color .2s;
+  }
+  .project-card:hover { border-color: rgba(108,240,176,.3); }
+  .project-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .project-card-header h3 { font-size: 15px; font-weight: 600; }
+  .badge { font-size: 10px; font-family: var(--mono); border-radius: 20px; padding: 3px 10px; white-space: nowrap; flex-shrink: 0; }
+  .badge-active { background: rgba(108,240,176,.15); color: var(--accent); border: 1px solid rgba(108,240,176,.3); }
+  .badge-success { background: rgba(91,127,255,.15); color: var(--accent2); border: 1px solid rgba(91,127,255,.3); }
+  .badge-failed { background: rgba(240,91,122,.15); color: var(--danger); border: 1px solid rgba(240,91,122,.3); }
+  .badge-pending { background: rgba(240,167,108,.15); color: var(--accent3); border: 1px solid rgba(240,167,108,.3); }
+  .project-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .progress-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width .5s ease; }
+  .progress-meta { display: flex; justify-content: space-between; font-size: 12px; font-family: var(--mono); }
+  .progress-meta .raised { color: var(--accent); }
+  .progress-meta .goal { color: var(--muted); }
+  .project-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border); }
+  .project-footer-info { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .project-actions { display: flex; gap: 8px; }
+  .btn-sm { padding: 6px 12px; font-size: 11px; border-radius: 6px; }
+
+  /* INFO TABLE */
+  .info-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .info-table tr { border-bottom: 1px solid var(--border); }
+  .info-table tr:last-child { border-bottom: none; }
+  .info-table td { padding: 10px 0; }
+  .info-table td:first-child { color: var(--muted); font-family: var(--mono); width: 200px; }
+  .info-table td code { font-family: var(--mono); font-size: 12px; background: var(--surface); padding: 2px 8px; border-radius: 4px; color: var(--accent2); }
+
+  /* MODAL-LIKE WALLET NOTICE */
+  .wallet-notice {
+    background: rgba(91,127,255,.08); border: 1px solid rgba(91,127,255,.25);
+    border-radius: var(--radius); padding: 1rem 1.25rem;
+    display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem;
+  }
+  .wallet-notice svg { width: 20px; height: 20px; color: var(--accent2); flex-shrink: 0; }
+  .wallet-notice p { font-size: 13px; color: var(--accent2); }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 18px; font-size: 13px; font-family: var(--mono);
+    transform: translateY(80px); opacity: 0; transition: all .3s ease;
+    max-width: 320px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.ok { border-color: rgba(108,240,176,.4); color: var(--accent); }
+  #toast.err { border-color: rgba(240,91,122,.4); color: var(--danger); }
+  #toast.info { border-color: rgba(91,127,255,.4); color: var(--accent2); }
+
+  /* ADDRESS DISPLAY */
+  .addr { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .addr span { color: var(--accent2); }
+
+  /* INPUT group with suffix */
+  .input-suffix { display: flex; }
+  .input-suffix input { border-radius: 8px 0 0 8px; flex: 1; }
+  .input-suffix .suffix { background: var(--surface); border: 1px solid var(--border); border-left: none; border-radius: 0 8px 8px 0; padding: 9px 12px; font-size: 13px; color: var(--muted); font-family: var(--mono); display: flex; align-items: center; }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+
+  /* Admin role banner */
+  .role-banner { display: none; background: rgba(240,167,108,.08); border: 1px solid rgba(240,167,108,.25); border-radius: 8px; padding: 8px 14px; font-size: 12px; font-family: var(--mono); color: var(--accent3); margin-bottom: 1rem; }
+  .role-banner.show { display: block; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 1.25rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 4px; width: fit-content; }
+  .tab { padding: 7px 16px; border-radius: 7px; font-size: 13px; font-family: var(--mono); cursor: pointer; color: var(--muted); border: none; background: none; transition: all .15s; }
+  .tab.active { background: var(--card); color: var(--text); }
+
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+    nav { display: none; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    CrowdTank
+  </div>
+  <div class="header-right">
+    <span class="network-badge" id="networkBadge">Sepolia Testnet</span>
+    <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+  </div>
+</header>
+
+<main>
+  <!-- SIDEBAR NAV -->
+  <nav>
+    <div class="nav-section">Explore</div>
+    <button class="nav-item active" onclick="showPanel('overview')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Overview
+    </button>
+    <button class="nav-item" onclick="showPanel('projects')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M2 6h20M2 18h20"/></svg>
+      All Projects
+    </button>
+
+    <div class="nav-section">Creator</div>
+    <button class="nav-item" onclick="showPanel('create')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+      Create Project
+    </button>
+    <button class="nav-item" onclick="showPanel('manage')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Manage Projects
+    </button>
+
+    <div class="nav-section">Contributor</div>
+    <button class="nav-item" onclick="showPanel('fund')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Fund a Project
+    </button>
+    <button class="nav-item" onclick="showPanel('withdraw')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Withdraw
+    </button>
+
+    <div class="nav-section">Admin</div>
+    <button class="nav-item" onclick="showPanel('admin')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Admin Panel
+    </button>
+  </nav>
+
+  <!-- CONTENT AREA -->
+  <div class="content">
+
+    <!-- WALLET NOTICE -->
+    <div class="wallet-notice" id="walletNotice">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <p>Connect your MetaMask wallet to interact with the CrowdTank smart contract on Sepolia.</p>
+    </div>
+
+    <!-- OVERVIEW PANEL -->
+    <div class="panel active" id="panel-overview">
+      <div class="page-header">
+        <h1>Dashboard</h1>
+        <p>Platform statistics &amp; your account overview</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <label>Total Projects</label>
+          <div class="val blue" id="statTotal">—</div>
+        </div>
+        <div class="stat-card">
+          <label>Successful</label>
+          <div class="val green" id="statSuccess">—</div>
+        </div>
+        <div class="stat-card">
+          <label>Failed</label>
+          <div class="val" style="color:var(--danger)" id="statFailed">—</div>
+        </div>
+        <div class="stat-card">
+          <label>Commission Pool</label>
+          <div class="val amber" id="statCommission">— ETH</div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Your Account</h2>
+        <table class="info-table">
+          <tr><td>Address</td><td id="infoAddr" class="addr">—</td></tr>
+          <tr><td>Balance</td><td id="infoBalance">—</td></tr>
+          <tr><td>Role</td><td id="infoRole">—</td></tr>
+          <tr><td>Network</td><td id="infoNetwork">Sepolia Testnet</td></tr>
+          <tr><td>Contract</td><td><code id="infoContract">Not configured</code></td></tr>
+        </table>
+        <div class="btn-row" style="margin-top:1.2rem">
+          <button class="btn btn-secondary" onclick="updateStats()">↻ Refresh Stats</button>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Quick Guide</h2>
+        <table class="info-table">
+          <tr><td>1. Connect wallet</td><td>Click "Connect Wallet" in the top-right</td></tr>
+          <tr><td>2. Set contract address</td><td>Paste your deployed CrowdTank address below</td></tr>
+          <tr><td>3. Create / Fund</td><td>Use the sidebar to navigate features</td></tr>
+          <tr><td>5% platform fee</td><td>Collected on every contribution automatically</td></tr>
+          <tr><td>Deadline extension</td><td>Creators can extend project deadlines after creation</td></tr>
+        </table>
+
+      </div>
+    </div>
+
+    <!-- ALL PROJECTS PANEL -->
+    <div class="panel" id="panel-projects">
+      <div class="page-header">
+        <h1>All Projects</h1>
+        <p>Browse and discover crowdfunding projects</p>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="filterProjects('all', this)">All</button>
+        <button class="tab" onclick="filterProjects('active', this)">Active</button>
+        <button class="tab" onclick="filterProjects('success', this)">Successful</button>
+        <button class="tab" onclick="filterProjects('failed', this)">Failed</button>
+      </div>
+      <div class="form-card" style="display:flex;gap:12px;align-items:center;padding:1rem 1.25rem;margin-bottom:1rem">
+        <input type="number" id="lookupId" placeholder="Project ID" style="width:150px" />
+        <button class="btn btn-secondary btn-sm" onclick="lookupProject()">Look up Project</button>
+        <button class="btn btn-secondary btn-sm" onclick="loadDemoProjects()">Load Demo Data</button>
+      </div>
+      <div class="projects-grid" id="projectsGrid">
+        <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);font-family:var(--mono);font-size:13px">
+          Connect wallet &amp; set contract address, then click "Look up Project" to fetch data.<br/>Or load demo data to preview the UI.
+        </div>
+      </div>
+    </div>
+
+    <!-- CREATE PANEL -->
+    <div class="panel" id="panel-create">
+      <div class="page-header">
+        <h1>Create Project</h1>
+        <p>You must be an authorized creator to create projects</p>
+      </div>
+      <div class="role-banner show" id="creatorBanner">⚠ Only admin-approved addresses can create projects. Ask the admin to call Add_Creators(yourAddress).</div>
+      <div class="form-card">
+        <h2>New Project Details</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Project Title</label>
+            <input type="text" id="createTitle" placeholder="My Awesome Project" />
+          </div>
+          <div class="form-group">
+            <label>Unique Project ID</label>
+            <input type="text" id="createId" placeholder="proj_001" />
+          </div>
+          <div class="form-group full">
+            <label>Description</label>
+            <textarea id="createDesc" placeholder="Describe your project goal..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Funding Goal</label>
+            <div class="input-suffix">
+              <input type="number" id="createGoal" placeholder="1.0" step="0.01" />
+              <div class="suffix">ETH</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Duration (seconds)</label>
+            <input type="number" id="createDuration" placeholder="2592000" />
+            <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">2592000 = 30 days</span>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="createProject()">Deploy Project</button>
+          <span style="font-size:12px;color:var(--muted);font-family:var(--mono)">5% platform fee collected on all contributions</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANAGE PANEL -->
+    <div class="panel" id="panel-manage">
+      <div class="page-header">
+        <h1>Manage Projects</h1>
+        <p>Extend deadlines, update goals, withdraw funds</p>
+      </div>
+      <div class="form-card">
+        <h2>Extend Deadline</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Project ID</label>
+            <input type="number" id="extendId" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label>Extra Time (seconds)</label>
+            <input type="number" id="extendTime" placeholder="86400" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="extendDeadline()">Extend Deadline</button>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Change Funding Goal</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Project ID</label>
+            <input type="number" id="changeGoalId" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label>New Goal</label>
+            <div class="input-suffix">
+              <input type="number" id="changeGoalVal" placeholder="2.0" step="0.01" />
+              <div class="suffix">ETH</div>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="changeGoal()">Update Goal</button>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Creator Withdraw</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Withdraw funds after a project is successfully funded.</p>
+        <div class="form-group">
+          <label>Project ID</label>
+          <input type="number" id="creatorWithdrawId" placeholder="0" style="max-width:200px" />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="creatorWithdraw()">Withdraw Funds</button>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Update &amp; Check Project Status</h2>
+        <div class="form-group">
+          <label>Project ID</label>
+          <input type="number" id="statusId" placeholder="0" style="max-width:200px" />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="updateStatus()">Update Status</button>
+          <button class="btn btn-secondary" onclick="getStatus()">Get Status</button>
+        </div>
+        <div id="statusResult" style="margin-top:12px;font-family:var(--mono);font-size:13px;color:var(--accent);display:none"></div>
+      </div>
+    </div>
+
+    <!-- FUND PANEL -->
+    <div class="panel" id="panel-fund">
+      <div class="page-header">
+        <h1>Fund a Project</h1>
+        <p>Contribute ETH to support projects you believe in</p>
+      </div>
+      <div class="form-card">
+        <h2>Make a Contribution</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">95% goes to the project; 5% is the platform commission. Extra ETH beyond the goal is refunded automatically.</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Project ID</label>
+            <input type="number" id="fundId" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label>Amount to Contribute</label>
+            <div class="input-suffix">
+              <input type="number" id="fundAmount" placeholder="0.1" step="0.001" />
+              <div class="suffix">ETH</div>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="fundProject()">Fund Project →</button>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Check Remaining Amount</h2>
+        <div class="form-group">
+          <label>Project ID</label>
+          <input type="number" id="remainId" placeholder="0" style="max-width:200px" />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="checkRemaining()">Check Remaining</button>
+        </div>
+        <div id="remainResult" style="margin-top:12px;font-family:var(--mono);font-size:14px;display:none">
+          <span style="color:var(--muted)">Remaining: </span><span id="remainVal" style="color:var(--accent)"></span>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Project Stats</h2>
+        <div class="form-group">
+          <label>Project ID</label>
+          <input type="number" id="statsId" placeholder="0" style="max-width:200px" />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="getProjectStats()">Get Stats</button>
+        </div>
+        <div id="statsResult" style="margin-top:12px;display:none">
+          <table class="info-table" id="statsTable"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- WITHDRAW PANEL -->
+    <div class="panel" id="panel-withdraw">
+      <div class="page-header">
+        <h1>Withdraw</h1>
+        <p>Claim your funds based on project outcome</p>
+      </div>
+      <div class="form-card">
+        <h2>User Withdraw (Project Failed)</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Reclaim your contribution if the project did not reach its goal by the deadline.</p>
+        <div class="form-group">
+          <label>Project ID</label>
+          <input type="number" id="userWithdrawId" placeholder="0" style="max-width:200px" />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="userWithdraw()">Withdraw Contribution</button>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Early Partial Withdraw</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Withdraw part of your contribution before the deadline.</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Project ID</label>
+            <input type="number" id="earlyId" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label>Amount to Withdraw</label>
+            <div class="input-suffix">
+              <input type="number" id="earlyAmount" placeholder="0.05" step="0.001" />
+              <div class="suffix">ETH</div>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger" onclick="earlyWithdraw()">Early Withdraw</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div class="panel" id="panel-admin">
+      <div class="page-header">
+        <h1>Admin Panel</h1>
+        <p>Restricted to the contract deployer address</p>
+      </div>
+      <div class="role-banner show" style="color:var(--danger);background:rgba(240,91,122,.08);border-color:rgba(240,91,122,.25)">
+        🔐 Admin functions will fail if your connected wallet is not the contract owner.
+      </div>
+
+      <div class="form-card">
+        <h2>Manage Authorized Creators</h2>
+        <div class="form-group" style="margin-bottom:12px">
+          <label>Creator Address</label>
+          <input type="text" id="creatorAddr" placeholder="0x..." />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="addCreator()">Add Creator</button>
+          <button class="btn btn-danger" onclick="removeCreator()">Remove Creator</button>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Withdraw Platform Commission</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Collect all accumulated 5% commission fees from contributions.</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="withdrawCommission()">Withdraw Commission</button>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h2>Project Statistics</h2>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="projectStatistics()">Load Statistics</button>
+        </div>
+        <div id="adminStatsResult" style="margin-top:12px;display:none">
+          <table class="info-table" id="adminStatsTable"></table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  // ── STATE ──────────────────────────────────────────
+  let provider = null;
+  let signer = null;
+  let userAddress = null;
+  let contract = null;
+  let contractAddress = '0xDE26E0466131272b8885c60A49Ca984655B5AF12';
+
+  // Minimal ABI derived from README
+  const ABI = [
+    "function createProject(string title, string desc, uint256 fundingGoal, uint256 duration, string uniqueID) external",
+    "function fundProject(uint256 projectID) external payable",
+    "function creatorWithdraw(uint256 projectID) external",
+    "function userWithdraw(uint256 projectID) external",
+    "function userEarlyWithdraw(uint256 projectID, uint256 amount) external",
+    "function UpdateProjectStatus() external",
+    "function GetProjectStatus(uint256 projectID) external view returns (string)",
+    "function ProjectStatistics() external view returns (uint256, uint256, uint256)",
+    "function extendDeadline(uint256 projectID, uint256 extraTime) external",
+    "function changeFundingGoal(uint256 projectID, uint256 newGoal) external",
+    "function Add_Creators(address creator) external",
+    "function removeCreator(address creator) external",
+    "function withdrawCommission() external",
+    "function getRemainingAmount(uint256 projectID) external view returns (uint256)",
+    "function getFundingPercentage(uint256 projectID) external view returns (uint256)",
+    "function getRemainingTime(uint256 projectID) external view returns (uint256)",
+    "function getTotalRaised(uint256 projectID) external view returns (uint256)",
+    "function getHighestContributor(uint256 projectID) external view returns (address, uint256)",
+    "function totalProjectsCreated() external view returns (uint256)",
+    "function successfulProjects() external view returns (uint256)",
+    "function failedProjects() external view returns (uint256)",
+    "function getCommissionBalance() external view returns (uint256)"
+  ];
+
+  // ── HELPERS ────────────────────────────────────────
+  function toast(msg, type='info') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = `show ${type}`;
+    setTimeout(() => t.className = '', 3500);
+  }
+
+  function showPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(`panel-${id}`).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  function filterProjects(filter, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.project-card').forEach(c => {
+      const status = c.dataset.status;
+      c.style.display = (filter === 'all' || status === filter) ? '' : 'none';
+    });
+  }
+
+
+
+  async function initContract() {
+    if (!signer || !contractAddress) return;
+    try {
+      const ethers = await loadEthers();
+      contract = new ethers.Contract(contractAddress, ABI, signer);
+    } catch(e) { console.error(e); }
+  }
+
+  async function loadEthers() {
+    return new Promise(resolve => {
+      if (window.ethers) { resolve(window.ethers); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js';
+      s.onload = () => resolve(window.ethers);
+      document.head.appendChild(s);
+    });
+  }
+
+  // ── WALLET ─────────────────────────────────────────
+  async function connectWallet() {
+    if (!window.ethereum) { toast('MetaMask not found. Please install it.', 'err'); return; }
+    try {
+      const ethers = await loadEthers();
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer = provider.getSigner();
+      userAddress = await signer.getAddress();
+
+      const btn = document.getElementById('connectBtn');
+      btn.textContent = userAddress.slice(0,6) + '...' + userAddress.slice(-4);
+      btn.classList.add('connected');
+
+      const bal = ethers.utils.formatEther(await provider.getBalance(userAddress));
+      document.getElementById('infoAddr').innerHTML = `<span>${userAddress}</span>`;
+      document.getElementById('infoBalance').textContent = parseFloat(bal).toFixed(4) + ' ETH';
+      document.getElementById('infoRole').textContent = 'Connected';
+      document.getElementById('walletNotice').style.display = 'none';
+
+      const net = await provider.getNetwork();
+      document.getElementById('infoNetwork').textContent = net.name + ' (chainId: ' + net.chainId + ')';
+      document.getElementById('networkBadge').textContent = net.name;
+
+      document.getElementById('infoContract').textContent = contractAddress.slice(0,6) + '...' + contractAddress.slice(-4);
+      initContract();
+
+      toast('Wallet connected!', 'ok');
+    } catch(e) { toast('Connection failed: ' + e.message, 'err'); }
+  }
+
+  // ── CONTRACT CALLS ─────────────────────────────────
+  async function createProject() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const title = document.getElementById('createTitle').value;
+    const desc = document.getElementById('createDesc').value;
+    const goal = document.getElementById('createGoal').value;
+    const dur = document.getElementById('createDuration').value;
+    const uid = document.getElementById('createId').value;
+    if (!title || !desc || !goal || !dur || !uid) { toast('Fill all fields', 'err'); return; }
+    try {
+      const ethers = await loadEthers();
+      toast('Sending transaction…', 'info');
+      const tx = await contract.createProject(title, desc, ethers.utils.parseEther(goal), dur, uid);
+      await tx.wait();
+      toast('Project created!', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function fundProject() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const id = document.getElementById('fundId').value;
+    const amt = document.getElementById('fundAmount').value;
+    if (!id || !amt) { toast('Fill project ID and amount', 'err'); return; }
+    try {
+      const ethers = await loadEthers();
+      toast('Sending transaction…', 'info');
+      const tx = await contract.fundProject(id, { value: ethers.utils.parseEther(amt) });
+      await tx.wait();
+      toast('Project funded! 🎉', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function creatorWithdraw() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const id = document.getElementById('creatorWithdrawId').value;
+    try {
+      toast('Sending transaction…', 'info');
+      const tx = await contract.creatorWithdraw(id);
+      await tx.wait();
+      toast('Withdrawal successful!', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function userWithdraw() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const id = document.getElementById('userWithdrawId').value;
+    try {
+      toast('Sending transaction…', 'info');
+      const tx = await contract.userWithdraw(id);
+      await tx.wait();
+      toast('Withdrawal successful!', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function earlyWithdraw() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const id = document.getElementById('earlyId').value;
+    const amt = document.getElementById('earlyAmount').value;
+    try {
+      const ethers = await loadEthers();
+      toast('Sending transaction…', 'info');
+      const tx = await contract.userEarlyWithdraw(id, ethers.utils.parseEther(amt));
+      await tx.wait();
+      toast('Early withdrawal successful!', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function extendDeadline() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const id = document.getElementById('extendId').value;
+    const time = document.getElementById('extendTime').value;
+    try {
+      toast('Sending transaction…', 'info');
+      const tx = await contract.extendDeadline(id, time);
+      await tx.wait();
+      toast('Deadline extended!', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function changeGoal() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const id = document.getElementById('changeGoalId').value;
+    const val = document.getElementById('changeGoalVal').value;
+    try {
+      const ethers = await loadEthers();
+      toast('Sending transaction…', 'info');
+      const tx = await contract.changeFundingGoal(id, ethers.utils.parseEther(val));
+      await tx.wait();
+      toast('Funding goal updated!', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function addCreator() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const addr = document.getElementById('creatorAddr').value;
+    try {
+      toast('Sending transaction…', 'info');
+      const tx = await contract.Add_Creators(addr);
+      await tx.wait();
+      toast('Creator added!', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function removeCreator() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const addr = document.getElementById('creatorAddr').value;
+    try {
+      toast('Sending transaction…', 'info');
+      const tx = await contract.removeCreator(addr);
+      await tx.wait();
+      toast('Creator removed!', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function withdrawCommission() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    try {
+      toast('Sending transaction…', 'info');
+      const tx = await contract.withdrawCommission();
+      await tx.wait();
+      toast('Commission withdrawn!', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function updateStatus() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    try {
+      toast('Updating…', 'info');
+      const tx = await contract.UpdateProjectStatus();
+      await tx.wait();
+      toast('Status updated!', 'ok');
+    } catch(e) { toast(e.reason || e.message || 'Transaction failed', 'err'); }
+  }
+
+  async function getStatus() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const id = document.getElementById('statusId').value;
+    try {
+      const status = await contract.GetProjectStatus(id);
+      const el = document.getElementById('statusResult');
+      el.textContent = 'Status: ' + status;
+      el.style.display = 'block';
+    } catch(e) { toast(e.reason || e.message || 'Call failed', 'err'); }
+  }
+
+  async function checkRemaining() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const id = document.getElementById('remainId').value;
+    try {
+      const ethers = await loadEthers();
+      const val = await contract.getRemainingAmount(id);
+      document.getElementById('remainVal').textContent = ethers.utils.formatEther(val) + ' ETH';
+      document.getElementById('remainResult').style.display = 'block';
+    } catch(e) { toast(e.reason || e.message || 'Call failed', 'err'); }
+  }
+
+  async function getProjectStats() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const id = document.getElementById('statsId').value;
+    try {
+      const ethers = await loadEthers();
+      const [raised, remaining, pct, time, [topAddr, topAmt]] = await Promise.all([
+        contract.getTotalRaised(id),
+        contract.getRemainingAmount(id),
+        contract.getFundingPercentage(id),
+        contract.getRemainingTime(id),
+        contract.getHighestContributor(id),
+      ]);
+      const rows = [
+        ['Total Raised', ethers.utils.formatEther(raised) + ' ETH'],
+        ['Remaining', ethers.utils.formatEther(remaining) + ' ETH'],
+        ['Funding %', pct.toString() + '%'],
+        ['Time Left', formatTime(time.toNumber())],
+        ['Top Contributor', topAddr.slice(0,8) + '...'],
+        ['Top Contribution', ethers.utils.formatEther(topAmt) + ' ETH'],
+      ];
+      const table = document.getElementById('statsTable');
+      table.innerHTML = rows.map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+      document.getElementById('statsResult').style.display = 'block';
+    } catch(e) { toast(e.reason || e.message || 'Call failed', 'err'); }
+  }
+
+  async function projectStatistics() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    try {
+      const [total, success, failed] = await contract.ProjectStatistics();
+      const rows = [
+        ['Total Projects', total.toString()],
+        ['Successful', success.toString()],
+        ['Failed', failed.toString()],
+      ];
+      const table = document.getElementById('adminStatsTable');
+      table.innerHTML = rows.map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+      document.getElementById('adminStatsResult').style.display = 'block';
+    } catch(e) { toast(e.reason || e.message || 'Call failed', 'err'); }
+  }
+
+  async function updateStats() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    try {
+      const ethers = await loadEthers();
+      const [total, success, failed, commission] = await Promise.all([
+        contract.totalProjectsCreated(),
+        contract.successfulProjects(),
+        contract.failedProjects(),
+        contract.getCommissionBalance().catch(() => ethers.BigNumber.from(0)),
+      ]);
+      document.getElementById('statTotal').textContent = total.toString();
+      document.getElementById('statSuccess').textContent = success.toString();
+      document.getElementById('statFailed').textContent = failed.toString();
+      document.getElementById('statCommission').textContent = parseFloat(ethers.utils.formatEther(commission)).toFixed(4) + ' ETH';
+      toast('Stats refreshed!', 'ok');
+    } catch(e) { toast('Could not fetch stats: ' + (e.reason || e.message), 'err'); }
+  }
+
+  async function lookupProject() {
+    if (!contract) { toast('Connect wallet & set contract address first', 'err'); return; }
+    const id = document.getElementById('lookupId').value;
+    try {
+      const ethers = await loadEthers();
+      const [raised, remaining, pct, status, time] = await Promise.all([
+        contract.getTotalRaised(id),
+        contract.getRemainingAmount(id),
+        contract.getFundingPercentage(id),
+        contract.GetProjectStatus(id),
+        contract.getRemainingTime(id),
+      ]);
+      const card = buildProjectCard({ id, raised: ethers.utils.formatEther(raised), remaining: ethers.utils.formatEther(remaining), pct: pct.toNumber(), status, time: formatTime(time.toNumber()) });
+      const grid = document.getElementById('projectsGrid');
+      grid.innerHTML = '';
+      grid.appendChild(card);
+    } catch(e) { toast(e.reason || e.message || 'Call failed', 'err'); }
+  }
+
+  function buildProjectCard({ id, raised, remaining, pct, status, time }) {
+    const statusMap = { 'Active': 'active', 'Successful': 'success', 'Failed': 'failed' };
+    const ds = statusMap[status] || 'pending';
+    const div = document.createElement('div');
+    div.className = 'project-card'; div.dataset.status = ds;
+    const pctNum = Math.min(pct, 100);
+    div.innerHTML = `
+      <div class="project-card-header">
+        <h3>Project #${id}</h3>
+        <span class="badge badge-${ds}">${status}</span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" style="width:${pctNum}%"></div></div>
+        <div class="progress-meta">
+          <span class="raised">${parseFloat(raised).toFixed(4)} ETH raised</span>
+          <span class="goal">${pct}% funded</span>
+        </div>
+      </div>
+      <div class="project-footer">
+        <div class="project-footer-info">${time} left · ${parseFloat(remaining).toFixed(4)} ETH needed</div>
+        <div class="project-actions">
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('fundId').value=${id};showPanel('fund')">Fund</button>
+        </div>
+      </div>
+    `;
+    return div;
+  }
+
+  function loadDemoProjects() {
+    const demos = [
+      { id: 0, raised: '1.2', remaining: '0.8', pct: 60, status: 'Active', time: '14 days' },
+      { id: 1, raised: '2.0', remaining: '0', pct: 100, status: 'Successful', time: 'Ended' },
+      { id: 2, raised: '0.3', remaining: '1.7', pct: 15, status: 'Failed', time: 'Ended' },
+      { id: 3, raised: '0.05', remaining: '0.95', pct: 5, status: 'Active', time: '6 days' },
+    ];
+    const grid = document.getElementById('projectsGrid');
+    grid.innerHTML = '';
+    demos.forEach(d => grid.appendChild(buildProjectCard(d)));
+    toast('Demo data loaded', 'info');
+  }
+
+  function formatTime(seconds) {
+    if (seconds <= 0) return 'Ended';
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    if (d > 0) return d + 'd ' + h + 'h';
+    const m = Math.floor((seconds % 3600) / 60);
+    return h + 'h ' + m + 'm';
+  }
+
+
+</script>
+</body>
+</html>
